@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="web.Terminal">
+        <div class="o-web-terminal">
+               <div class="o-web-terminal-title">
+                   <h6>Odoo</h6>
+                   <span class="fa fa-close close" />
+               </div>
+               <div id="terminal" />
+        </div>
+
+    </t>
+    <t t-name="web.TerminalMenu">
+        <li role="menuitem" class="o-web-shell">
+            <a href="javascript:void(0)" role="button">
+                <span class="fa fa-terminal" />
+            </a>
+        </li>
+    </t>
+</templates>

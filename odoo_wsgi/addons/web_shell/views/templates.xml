@@ -1,0 +1,16 @@
+<odoo>
+    <data>
+        <template id="assets_backend" name="web terminal assets backend" inherit_id="web.assets_backend">
+            <xpath expr="." position="inside">
+                <link type="text/css" href="/web_shell/static/src/css/style.css" rel="stylesheet"/>
+                <link type="text/css" href="/web_shell/static/src/css/xterm.min.css" rel="stylesheet"/>
+                <script type="text/javascript" src="/web_shell/static/src/js/terminal.js"/>
+                <script type="text/javascript" src="/web_shell/static/src/js/menu.js"/>
+                <script type="text/javascript" src="/web_shell/static/src/lib/xterm.js"/>
+                <script type="text/javascript" src="/web_shell/static/src/lib/xterm-addon-fit.min.js"/>
+                <script type="text/javascript" src="/web_shell/static/src/lib/echarts.min.js"/>
+                <script type="text/javascript" src="/web_shell/static/src/lib/socket.io.min.js"/>
+            </xpath>
+        </template>
+    </data>
+</odoo>
