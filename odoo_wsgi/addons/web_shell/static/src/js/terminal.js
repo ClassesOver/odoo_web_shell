@@ -1,20 +1,21 @@
 // import { DEFAULT_ATTR_DATA } from 'xterm/src/common/buffer/BufferLine'
 
 odoo.define('web.terminal', function (require) {
-	var MINIMUM_COLS = 2
-	var MINIMUM_ROWS = 1
+
 	var Widget = require('web.Widget')
-	// var socket_io = require('web.socket_io')
-	var session = require('web.session')
+	var core = require('web.core')
+	var QWeb = core.qweb
 	const isWindows = ['Windows', 'Win16', 'Win32', 'WinCE'].indexOf(navigator.platform) >= 0
 	var Terminal = Widget.extend({
 		template: 'web.Terminal',
+		entriesTemplate: 'web.TerminalEntries',
 		events: {
 			'click .close': '_onClose',
 		},
 		init: function (parent) {
 			this._super.apply(this, arguments)
 			this.encoding = 'utf-8'
+			this._pointer = -1
 			this.decoder = window.TextDecoder ? new window.TextDecoder(this.encoding) : this.encoding
 			this.term = new window.Terminal({
 				windowsMode: isWindows,
@@ -55,11 +56,22 @@ odoo.define('web.terminal', function (require) {
 			this.term.exec_count = this.bannerData.exec_count
 			this.prompt()
 		},
+		_onUpDown: function (ev) {
+			if (this.$entries) {
+				if (ev >= this.entries.length || ev <= -1) {
+					return
+				}
+				$(this.$entries.find('li.active')).removeClass('active')
+				$(this.$entries.find('li')[ev]).addClass('active')
+			}
+
+		},
 		start: function () {
 			this.sock = new io({transports: ['websocket', 'polling']})
 			this.$terminal = this.$('#terminal')
 			this.term.open(this.$terminal[0])
 			this.sock.connect()
+			this.on('up_down', this, this._onUpDown)
 			this._rpc({model: 'web.terminal', method: 'show_banner'}).then((data) => {
 				this.bannerData = data
 				this.term.focus()
@@ -96,24 +108,68 @@ odoo.define('web.terminal', function (require) {
 		termWrite: function (text) {
 			this.term.write(text)
 		},
+		openEntries: function () {
+			if (this.$entries) {
+				return
+			}
+			if (this.entries.length > 0) {
+				this.$entries = $(QWeb.render(this.entriesTemplate, {entries: this.entries}))
+				this.$entries.appendTo(this.$el)
+			}
+
+		},
+		closeEntries: function () {
+			if (this.$entries) {
+				this.$entries.remove()
+				this.$entries = null
+			}
+		},
 		bindTermEvents: function () {
 			this.term.onKey((e) => {
 				const ev = e.domEvent
 				const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey
-
+				if (ev.keyCode === 38) {
+					this.openEntries()
+					if ((this._pointer - 1) < 0) {
+						return
+					}
+					this._pointer = this._pointer - 1
+					this.trigger('up_down', this._pointer)
+					return
+				}
+				if (ev.keyCode === 40) {
+					this.openEntries()
+					if ((this._pointer + 1) > this.entries.length) {
+						return
+					}
+					this._pointer = this._pointer + 1
+					this.trigger('up_down', this._pointer)
+					return
+				}
 				if (ev.keyCode === 13) {
+					if (this.$entries) {
+						let val = this.$entries.find('li.active').text()
+						for (let chr of val.trim()) {
+							this.currentLine += chr
+							this.term.write(chr)
+						}
+						this.closeEntries()
+						return
+					}
 					if (this.currentLine) {
 						this.entries.push(this.currentLine)
 						// if (this.currentLine === 'clear') {
 						// 	// this.term.clear()
 						// }
 						this.term.write('\r\n')
+						this._pointer = this.entries.length
 						this.send(this.currentLine)
 					} else {
 						this.term.write('\r\n')
 						this.prompt()
 					}
 				} else if (ev.keyCode === 8) {
+					this.closeEntries()
 					// Do not delete the prompt
 					if (this.currentLine) {
 						this.currentLine = this.currentLine.slice(0, this.currentLine.length - 1)
@@ -122,6 +178,7 @@ odoo.define('web.terminal', function (require) {
 						this.termWrite('\b \b')
 					}
 				} else if (printable) {
+					this.closeEntries()
 					this.currentLine += e.key
 					this.termWrite(e.key)
 				}
