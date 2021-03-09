@@ -1,8 +1,49 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models, api
-from ..controllers.main import start_new, SESSION_KEY, SHELL_KEY
+from ..controllers.main import start_new, SESSION_KEY
 from odoo.http import request
+
+from odoo import models, api
+
+if not hasattr(api, 'multi'):
+    def multi(fn):
+        return fn
+    
+    
+    api.multi = multi
+
+
+class Base(models.AbstractModel):
+    _inherit = 'base'
+    
+    @api.multi
+    def write(self, values):
+        if hasattr(self.env.cr, 'operations'):
+            self.env.cr.operations.append((self._name, 'write', self.ids))
+        else:
+            self.env.cr.operations = []
+            self.env.cr.operations.append((self._name, 'write', self.ids))
+        return super(Base, self).write(values)
+    
+    @api.model
+    def create(self, values):
+        if hasattr(self.env.cr, 'operations'):
+            self.env.cr.operations.append((self._name, 'create', []))
+        else:
+            self.env.cr.operations = []
+            self.env.cr.operations.append((self._name, 'create', []))
+        return super(Base, self).create(values)
+    
+    @api.multi
+    def unlink(self):
+        if hasattr(self.env.cr, 'operations'):
+            self.env.cr.operations.append((self._name, 'unlink', self.ids))
+        else:
+            self.env.cr.operations = []
+            self.env.cr.operations.append((self._name, 'unlink', self.ids))
+        
+        return super(Base, self).unlink()
 
 
 class WebTerminal(models.Model):

@@ -7,11 +7,6 @@ from os.path import join, dirname
 from dotenv import load_dotenv
 import atexit
 import logging
-import json
-import threading
-import time
-from psycopg2 import ProgrammingError, errorcodes
-import csv
 
 # Also use the `odoo` logger for the main script.
 _logger = logging.getLogger('odoo')
@@ -49,75 +44,42 @@ else:
             raise ModuleNotFoundError
     except ModuleNotFoundError:
         raise ImportError('odoo is not available.')
-    
-_Cursor = odoo.sql_db.Cursor
 
-class Cursor(_Cursor):
-    
-    def __init__(self, pool, dbname, dsn, serialized=True):
-        self._operations = []
-        self._emit_callback = lambda *args: None
-        super(Cursor, self).__init__(pool, dbname, dsn, serialized=serialized)
-        
-    @odoo.sql_db.check
-    def commit(self):
-       rt = super(Cursor, self).commit()
-       self._operations = []
-       return rt
-    
-    def emitter(self, fn):
-        self._emit_callback = fn
-        
-    def emit(self, ops):
-        if self._emit_callback and callable(self._emit_callback):
-            try:
-                self._emit_callback(ops)
-            except TypeError:
-                pass
-    
-odoo.sql_db.Cursor = Cursor
 
 
 
 
 def launch_new_instance(args, argv=[], **kw):
+    from odoo_wsgi.monkey_patch import monkey_patch
+    from odoo_wsgi.dispatch import dispatch
+    monkey_patch()
     check_root_user()
     odoo.tools.config.parse_config(args)
     check_postgres_user()
     report_configuration()
-    import socketio
-    sio = socketio.Client()
-
-    def wait():
-        sio.connect('http://localhost:8069') # todo fix fixed port
-        sio.wait()
-    threading.Thread(target=wait).start()
     odoo.conf.server_wide_modules = ['base', 'web']
 
     odoo.service.server.load_server_wide_modules()
     db_name = odoo.tools.config['db_name']
-
     with odoo.api.Environment.manage():
         local_vars = {
             'openerp': odoo,
             'odoo'   : odoo,
         }
         if db_name:
-            registry = odoo.registry(db_name)
-            cr = registry.cursor()
-            @cr.emitter
-            def emit(ops):
-                print('commit')
-                sio.emit('commit', ops)
+            rty = odoo.registry(db_name)
+            cr = rty.cursor()
+            @cr.after_commit_callback
+            def after_commit(ops):
+                dispatch(('commit', ops))
+                
             uid = odoo.SUPERUSER_ID
             ctx = odoo.api.Environment(cr, uid, {})['res.users'].context_get()
             env = odoo.api.Environment(cr, uid, ctx)
             local_vars['env'] = env
             local_vars['self'] = env.user
-            
-        app = IPKernelApp.instance(argv=argv, user_ns=local_vars, **kw)
-        app.initialize(argv)
-        app.start()
+        
+        IPKernelApp.launch_instance(user_ns=local_vars)
 
 
 def check_root_user():
