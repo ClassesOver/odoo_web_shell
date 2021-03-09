@@ -13,6 +13,30 @@
     z-index: 1;
     transition: all ease 0.3s;
 }
+.o-web-terminal-entries {
+    position: absolute;
+    height: auto;
+    top: 50px;
+    right: 20px;
+    width: 180px;
+    padding: 5px;
+    background: whitesmoke;
+}
+
+.o-web-terminal-entries ul {
+    margin: 0px;
+    padding: 0px 5px;
+
+}
+
+.o-web-terminal-entries ul li {
+    padding: 4px 3px;
+
+}
+.o-web-terminal-entries ul li:hover,li.active {
+    background: #dadada;
+
+}
 
 .o-web-terminal-container.opened {
     width: 80%;

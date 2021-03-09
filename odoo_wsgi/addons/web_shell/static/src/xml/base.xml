@@ -17,4 +17,15 @@
             </a>
         </li>
     </t>
+    <t t-name="web.TerminalEntries">
+        <div class="o-web-terminal-entries">
+            <ul>
+                <t t-foreach="entries" t-as="entry">
+                    <li class="o-web-terminal-entry">
+                       <span><t t-esc="entry" /></span>
+                    </li>
+                </t>
+            </ul>
+        </div>
+    </t>
 </templates>
