@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-
-# -*- coding: utf-8 -*-
 import socketio
-from werkzeug.http import parse_cookie
 import signal
 import psutil
 import os
 from ..worker import WorkerManager
 import datetime
 import json
-import odoo
+from odoo_wsgi.dispatch import dispatch
 
 try:
     from json.decoder import JSONDecodeError
@@ -53,6 +50,7 @@ class SignalHandler(object):
         
         return fn
 
+
 infos = []
 sio = SocketIOServer(logger=True, async_mode=async_mode, always_connect=True)
 worker_manager = WorkerManager(socket_io=sio)
@@ -66,23 +64,11 @@ def start_new(ip, uuid=False, sid=None, db_name=None, uid=None):
     return worker.id, worker
 
 
-
-
 def server_info():
     while True:
         sio.sleep(1)
         memory_info = psutil.virtual_memory()
         data = {}
-        # def padding_infos(dt, v, length=60):
-        #     infos.append(v)
-        #     dummpys = length - len(infos)
-        #     if dummpys > 0:
-        #         for i in range(0, dummpys):
-        #             dt = dt - timedelta(seconds=i + 1)
-        #             v['time'] = dt.strftime('%Y-%m-%d %H:%M:%S')
-        #             infos.insert(0, v)
-        #     else:
-        #         infos.pop(0)
         try:
             for k, v in shells.items():
                 data[k] = psutil.Process(v.pid).memory_info()
@@ -94,7 +80,6 @@ def server_info():
                     'cpu_percent' : psutil.cpu_percent(interval=1),
                     'cpu'         : psutil.cpu_count(),
                     'time'        : now.strftime('%Y-%m-%d %H:%M:%S')}
-            # padding_infos(now, dict(info))
             if len(infos) >= 60:
                 infos.pop(0)
             infos.append(info)
@@ -102,6 +87,11 @@ def server_info():
         
         except RuntimeError:
             pass
+
+@dispatch.register('commit')
+def handle_commit(ops):
+    for op in ops:
+        sio.emit('commit', json.dumps(op) )
 
 
 @handler.ignore
@@ -140,7 +130,6 @@ def connect(sid, environ):
         session['ip'] = get_client_ip(environ)
         sio.emit('open', room=sid)
     
-
 
 def get_client_ip(environ):
     if environ.get('HTTP_X_FORWARDED_FOR') is not None:

@@ -8,7 +8,8 @@
 #   $ gunicorn odoo:service.wsgi_server.application -c openerp-wsgi.py
 
 from odoo_wsgi import odoo
-from odoo_wsgi import check_root_user, check_postgres_user, report_configuration, setup_pid_file, preload_registries
+from odoo_wsgi import check_root_user, check_postgres_user, report_configuration, setup_pid_file, \
+    preload_registries
 import socketio
 import os
 import sys
@@ -18,11 +19,9 @@ import socket
 import platform
 import errno
 
-
 addon_path = os.path.normcase(os.path.abspath(os.path.join(os.path.dirname(__file__), 'addons')))
 if addon_path not in odoo.addons.__path__:
     odoo.addons.__path__.append(addon_path)
-
 
 
 class Server(object):
@@ -139,7 +138,7 @@ def main(args):
     setup_pid_file()
     
     server = Server()
-    sys.exit(server.start(preload,load=['web_shell']))
+    sys.exit(server.start(preload, load=['web_shell']))
 
 
 def serve_forever():

@@ -96,21 +96,6 @@ odoo.define('web.terminal', function (require) {
 		termWrite: function (text) {
 			this.term.write(text)
 		},
-		// clear: function () {
-		//
-		// 	if (0 !== this.buffer.ybase || 0 !== this.buffer.y) {
-		// 		this.buffer.lines.set(0, this.buffer.lines.get(this.buffer.ybase + this.buffer.y))
-		// 		this.buffer.lines.length = 1
-		// 		this.buffer.ydisp = 0
-		// 		this.buffer.ybase = 0
-		// 		this.buffer.y = 0
-		// 		for (var e = 1; e < this.rows; e++) {
-		// 			this.buffer.lines.push(this.buffer.getBlankLine(C.DEFAULT_ATTR_DATA))
-		// 		}
-		// 		this.refresh(0, this.rows - 1), this._onScroll.fire(this.buffer.ydisp)
-		// 	}
-		//
-		// },
 		bindTermEvents: function () {
 			this.term.onKey((e) => {
 				const ev = e.domEvent
@@ -119,10 +104,9 @@ odoo.define('web.terminal', function (require) {
 				if (ev.keyCode === 13) {
 					if (this.currentLine) {
 						this.entries.push(this.currentLine)
-						if (this.currentLine === 'clear') {
-							this.term.clear()
-							debugger
-						}
+						// if (this.currentLine === 'clear') {
+						// 	// this.term.clear()
+						// }
 						this.term.write('\r\n')
 						this.send(this.currentLine)
 					} else {
